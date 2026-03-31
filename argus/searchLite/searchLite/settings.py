@@ -202,3 +202,6 @@ CORS_ALLOW_HEADERS = [
     'content-language',
     'cookie',
 ]
+
+
+ENABLE_LOCAL_AUTH_FALLBACK = os.getenv("ENABLE_LOCAL_AUTH_FALLBACK", "false")

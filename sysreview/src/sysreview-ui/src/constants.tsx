@@ -24,6 +24,17 @@ export const ANALYSER_API_URI = isProd
 export const APP_URI_PREFIX = `/${APP_NAME}/ui`;
 export const IMAGE_URI_PREFIX = `/${APP_NAME}/images`;
 
+export const ENABLE_LOCAL_AUTH_FALLBACK =
+  String(process.env.REACT_APP_ENABLE_LOCAL_AUTH_FALLBACK || 'false').toLowerCase() === 'true';
+
+export const PORTAL_HOME_URL = process.env.REACT_APP_PORTAL_HOME_URL || '/';
+
+export const buildGatewayLoginUrl = (nextPath: string = APP_URI_PREFIX + '/dashboard') => {
+  const base = process.env.REACT_APP_GATEWAY_LOGIN_URL || '/unified-login.html';
+  const separator = base.includes('?') ? '&' : '?';
+  return `${base}${separator}app=${APP_NAME}&next=${encodeURIComponent(nextPath)}`;
+};
+
 export const datasourcesLogos: { [key in datasourceKeyType]: string } = {
   IEEE: `${IMAGE_URI_PREFIX}/ieee_logo.svg`,
   PUBMED: `${IMAGE_URI_PREFIX}/pubmed_logo.svg`,

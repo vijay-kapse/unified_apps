@@ -169,4 +169,9 @@ FORCE_SCRIPT_NAME = ''
 
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'http')
-LOGIN_URL = '/login'
+LOGIN_URL = '/login/'
+
+
+ENABLE_LOCAL_AUTH_FALLBACK = str(os.getenv('ENABLE_LOCAL_AUTH_FALLBACK', 'false')).lower() in ('1','true','yes','on')
+GATEWAY_LOGIN_URL = os.getenv('GATEWAY_LOGIN_URL', '/unified-login.html')
+PORTAL_HOME_URL = os.getenv('PORTAL_HOME_URL', '/')

@@ -1,11 +1,19 @@
-import { Navigate } from "react-router-dom";
+import { useEffect } from "react";
 import { validateToken } from "../api/utility";
-import { APP_URI_PREFIX } from "../constants";
+import { buildGatewayLoginUrl } from "../constants";
 
-const Protected = ({ children, loggedIn }) => {
+const Protected = ({ children }) => {
+  useEffect(() => {
+    if (!validateToken()) {
+      const nextPath = window.location.pathname + window.location.search;
+      window.location.assign(buildGatewayLoginUrl(nextPath));
+    }
+  }, []);
+
   if (!validateToken()) {
-    return <Navigate to={`${APP_URI_PREFIX}/auth`} replace />;
+    return null;
   }
+
   return <>{children}</>;
 };
 

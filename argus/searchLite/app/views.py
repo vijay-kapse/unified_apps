@@ -29,9 +29,13 @@ import shutil
 import os
 import traceback
 
+LOCAL_AUTH_FALLBACK_ENABLED = str(getattr(settings, "ENABLE_LOCAL_AUTH_FALLBACK", False)).lower() in ("1", "true", "yes", "on")
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register_view(request):
+    if not LOCAL_AUTH_FALLBACK_ENABLED:
+        return Response({"message": "Local auth register disabled"}, status=status.HTTP_404_NOT_FOUND)
 
     if(not request):
        print('its null')
@@ -121,6 +125,8 @@ def sso_callback_view(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_view(request):
+    if not LOCAL_AUTH_FALLBACK_ENABLED:
+        return Response({"message": "Local auth login disabled"}, status=status.HTTP_404_NOT_FOUND)
     try:
         email = request.data.get('email')
         password = request.data.get('password')

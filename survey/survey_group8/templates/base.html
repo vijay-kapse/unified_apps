@@ -14,9 +14,10 @@
 <body>
   <main>
     <nav>
+        <a href="/">Back to Portal</a>
         {% if user.is_authenticated %}
             <span class="greeting">Hi {{ user.username }}!</span>
-            <form action="{% url 'logout' %}" method="post">
+            <form action="{% url 'logout' %}?next=/" method="post">
                 {% csrf_token %}
                 <button type="submit">Log Out</button>
             </form>

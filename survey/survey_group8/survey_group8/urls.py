@@ -1,33 +1,31 @@
 """
 URL configuration for survey_group8 project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.1/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from urllib.parse import urlencode
+from django.conf import settings
 from django.contrib import admin
 from django.urls import path, include
-from django.views.generic.base import TemplateView
+from django.shortcuts import redirect
 from dashboard import views
 from django.conf.urls.static import static
-from django.conf import settings
+
+
+def gateway_login_redirect(request):
+    if request.user.is_authenticated:
+        return redirect('home')
+    base = settings.GATEWAY_LOGIN_URL
+    query = urlencode({"app": "survey", "next": request.get_full_path()})
+    separator = '&' if '?' in base else '?'
+    return redirect(f"{base}{separator}{query}")
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path("accounts/", include("django.contrib.auth.urls")),
+    path('login/', gateway_login_redirect, name='login'),
     path("accounts/", include("accounts.urls")),
     path("dashboard/", include("dashboard.urls")),
-    path('', views.home,name='home'),
-    path('create/', views.survey_create,name='survey_create'),
+    path('', views.home, name='home'),
+    path('create/', views.survey_create, name='survey_create'),
     path('deletesurvey/<int:id>', views.survey_delete, name='survey_delete'),
     path('publishsurvey/<int:id>', views.survey_publish, name='survey_publish'),
     path('closesurvey/<int:id>', views.survey_close, name='survey_close'),
@@ -39,5 +37,8 @@ urlpatterns = [
     path('qa/<int:id>/', views.qa_view, name='qa_view'),
     path('qa_submit/', views.qa_submit, name='qa_submit'),
     path('thankyou/<int:id>/', views.thankyou, name='thankyou'),
-    path('complete/',views.complete,name='complete'),
-    ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    path('complete/', views.complete, name='complete'),
+] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+if settings.ENABLE_LOCAL_AUTH_FALLBACK:
+    urlpatterns.insert(2, path("accounts/", include("django.contrib.auth.urls")))

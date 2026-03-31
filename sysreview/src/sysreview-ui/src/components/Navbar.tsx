@@ -1,23 +1,24 @@
 import { useContext } from "react";
 import { Navbar, Container, Nav, Button } from "react-bootstrap";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import AppContext from "../contexts/AppContext";
 import {
   APP_NAME,
   APP_URI_PREFIX,
   IMAGE_URI_PREFIX,
   TUTORIAL_URI,
+  PORTAL_HOME_URL,
+  buildGatewayLoginUrl,
 } from "../constants";
 import { validateToken } from "../api/utility";
 
 const MyNavbar = () => {
   const { unsetUserDetails } = useContext(AppContext);
   const isAuthenticated = validateToken();
-  const navigate = useNavigate();
 
   const logout = () => {
     unsetUserDetails();
-    navigate(`/${APP_NAME}`);
+    window.location.assign(PORTAL_HOME_URL);
   };
 
   return (
@@ -46,15 +47,14 @@ const MyNavbar = () => {
             >
               Tutorial
             </Nav.Link>
+            <Nav.Link href={PORTAL_HOME_URL}>Back to Portal</Nav.Link>
             {isAuthenticated && (
               <Button className="c-btn-negative ml-1" onClick={logout}>
                 Logout
               </Button>
             )}
             {!isAuthenticated && (
-              <Nav.Link as={Link} to={`${APP_URI_PREFIX}/auth`}>
-                <Button className="c-btn-secondary">Sign In</Button>
-              </Nav.Link>
+              <Nav.Link href={buildGatewayLoginUrl(window.location.pathname)}><Button className="c-btn-secondary">Sign In</Button></Nav.Link>
             )}
           </Nav>
         </Navbar.Collapse>

@@ -1,15 +1,22 @@
+from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.models import Group, User
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, HttpResponseNotFound
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView
-from .forms import CustomUserCreationForm  
+from .forms import CustomUserCreationForm
+
 
 class SignUpView(CreateView):
     form_class = CustomUserCreationForm
     success_url = reverse_lazy("login")
     template_name = "registration/signup.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not settings.ENABLE_LOCAL_AUTH_FALLBACK:
+            return HttpResponseNotFound("Local signup disabled")
+        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
         user = form.save()
@@ -25,11 +32,13 @@ class SignUpView(CreateView):
         if group:
             user.groups.add(group)
 
-        login(self.request, user) 
+        login(self.request, user)
         return super().form_valid(form)
 
 
 def sso_login(request):
+    if not settings.ENABLE_LOCAL_AUTH_FALLBACK:
+        return HttpResponseNotFound('Local SSO bridge disabled')
     mock_email = request.GET.get('email')
     next_url = request.GET.get('next', '/survey/')
     if not mock_email:
@@ -39,6 +48,8 @@ def sso_login(request):
 
 
 def sso_callback(request):
+    if not settings.ENABLE_LOCAL_AUTH_FALLBACK:
+        return HttpResponseNotFound('Local SSO bridge disabled')
     email = request.GET.get('email')
     next_url = request.GET.get('next', '/survey/')
     if not email:

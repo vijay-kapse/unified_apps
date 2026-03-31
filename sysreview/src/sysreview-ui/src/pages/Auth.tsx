@@ -1,7 +1,15 @@
 import { Button, Col, Container, Row } from "react-bootstrap";
-import { IMAGE_URI_PREFIX } from "../constants";
+import { IMAGE_URI_PREFIX, ENABLE_LOCAL_AUTH_FALLBACK, buildGatewayLoginUrl } from "../constants";
+import { useEffect } from "react";
 
 const Auth = () => {
+  useEffect(() => {
+    if (!ENABLE_LOCAL_AUTH_FALLBACK) {
+      const nextPath = window.location.pathname + window.location.search;
+      window.location.assign(buildGatewayLoginUrl(nextPath));
+    }
+  }, []);
+
   return (
     <div className="auth-page">
       <Container className="auth-wrapper rounded-5 shadow-lg">
@@ -17,18 +25,14 @@ const Auth = () => {
             <div className="p-4 d-flex flex-column gap-3 align-items-start">
               <h2>Unified Login for Sysreview</h2>
               <p>
-                Sysreview is being converged into the shared platform login experience.
-                Use the unified portal as the central entry point, then return here with a shared identity flow.
+                Sysreview uses the shared platform login entry. Continue to the gateway and return here with a shared identity session.
               </p>
               <Button
                 className="c-btn-secondary py-2 px-4"
-                href="/unified-login.html?app=sysreview"
+                href={buildGatewayLoginUrl(window.location.pathname)}
               >
                 Continue to Unified Login
               </Button>
-              <p className="mb-0 text-muted">
-                The local username/password form is being phased out in the copied integration workspace in favor of a shared login entry.
-              </p>
             </div>
           </Col>
         </Row>

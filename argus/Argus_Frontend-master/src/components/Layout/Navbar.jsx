@@ -11,17 +11,16 @@ import {
     MenuItem,
     Button,
   } from '@chakra-ui/react';
+  import { PORTAL_HOME_URL } from '../../utils/constants';
   import { HamburgerIcon, ChevronDownIcon } from '@chakra-ui/icons';
   import { useAuth } from '../../contexts/AuthContext'
-  import { useNavigate } from 'react-router-dom';
   
   const Navbar = ({ onOpen }) => {
     const { user, logout } = useAuth();
-    const navigate = useNavigate();
   
     const handleLogout = async () => {
       await logout();
-      navigate('/login');
+      window.location.assign(PORTAL_HOME_URL);
     };
   
     return (
@@ -50,6 +49,7 @@ import {
           </Text>
   
           <HStack spacing={4}>
+            <Button as="a" href={PORTAL_HOME_URL} variant="ghost">Back to Portal</Button>
             <Menu>
               <MenuButton
                 as={Button}
