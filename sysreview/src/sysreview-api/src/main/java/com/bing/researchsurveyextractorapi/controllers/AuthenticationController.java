@@ -4,17 +4,14 @@ import com.bing.researchsurveyextractorapi.pojo.auth.AuthenticationRequest;
 import com.bing.researchsurveyextractorapi.pojo.auth.AuthenticationResponse;
 import com.bing.researchsurveyextractorapi.pojo.auth.PasswordChangeRequest;
 import com.bing.researchsurveyextractorapi.pojo.auth.RegisterRequest;
-import com.bing.researchsurveyextractorapi.pojo.user.UserDto;
+import com.bing.researchsurveyextractorapi.pojo.auth.TrustedIdentityRequest;
 import com.bing.researchsurveyextractorapi.service.AuthenticationService;
-import com.bing.researchsurveyextractorapi.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -23,7 +20,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthenticationController {
 
     private final AuthenticationService authenticationService;
-    private final UserService userService;
 
     @PostMapping("/signup")
     public ResponseEntity<AuthenticationResponse> register(@RequestBody RegisterRequest request) {
@@ -39,22 +35,11 @@ public class AuthenticationController {
         return ResponseEntity.status(status).body(response);
     }
 
-    @GetMapping("/shared-login")
-    public ResponseEntity<AuthenticationResponse> sharedLogin(
-            @RequestParam String email,
-            @RequestParam(required = false, defaultValue = "Shared") String firstName,
-            @RequestParam(required = false, defaultValue = "User") String lastName,
-            @RequestParam(required = false) String username
-    ) {
-        AuthenticationResponse response = authenticationService.authenticateSharedIdentity(email, firstName, lastName, username);
+    @PostMapping(value = "/shared-login/exchange", consumes = {"application/json"})
+    public ResponseEntity<AuthenticationResponse> exchangeTrustedLogin(@RequestBody TrustedIdentityRequest request) {
+        AuthenticationResponse response = authenticationService.authenticateSharedIdentityFromGatewayToken(request.getGatewayToken());
         HttpStatus status = response.isAuthenticated() ? HttpStatus.OK : HttpStatus.UNAUTHORIZED;
         return ResponseEntity.status(status).body(response);
-    }
-
-    @GetMapping("/shared-login/exists")
-    public ResponseEntity<Boolean> sharedLoginUserExists(@RequestParam String email) {
-        UserDto user = userService.getUserByEmail(email);
-        return ResponseEntity.ok(user != null);
     }
 
     @PostMapping("/changePassword")

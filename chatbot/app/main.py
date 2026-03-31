@@ -16,9 +16,13 @@ except Exception as e:
     def chatbot_response(query, document_titles=None):
         titles = document_titles or []
         return f"Copied unified runtime placeholder response for query: {query}. Active documents: {', '.join(titles) if titles else 'none'}."
+import base64
 import hashlib
+import hmac
+import json
 import secrets
 import glob
+import time
 
 app = FastAPI()
 
@@ -52,14 +56,52 @@ def get_current_user(session_token: str = Cookie(None)):
         return SESSIONS[session_token]
     return None
 
+def _b64_decode(data: str) -> bytes:
+    return base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))
+
+
+def _validate_gateway_token(raw_token: str):
+    try:
+        payload_b64, sig_b64 = raw_token.split('.', 1)
+    except ValueError:
+        return None
+
+    secret = os.getenv("GATEWAY_SESSION_SECRET")
+    if not secret:
+        return None
+
+    expected_sig = base64.urlsafe_b64encode(
+        hmac.new(secret.encode("utf-8"), payload_b64.encode("utf-8"), hashlib.sha256).digest()
+    ).decode("utf-8").rstrip("=")
+    if not hmac.compare_digest(sig_b64, expected_sig):
+        return None
+
+    try:
+        payload = json.loads(_b64_decode(payload_b64))
+    except Exception:
+        return None
+
+    if int(payload.get("exp", 0)) < int(time.time()):
+        return None
+    if not payload.get("email") or not payload.get("sub"):
+        return None
+    return payload
+
+
 @app.get("/chatbot/shared-entry")
-async def chatbot_shared_entry(sharedEmail: str, next: str = "/chatbot/"):
-    username = sharedEmail.split("@")[0]
+async def chatbot_shared_entry(gateway_token: str, next: str = "/chatbot/"):
+    trusted_identity = _validate_gateway_token(gateway_token)
+    if trusted_identity is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid gateway_token")
+
+    username = trusted_identity["email"].split("@")[0]
     if username not in USERS:
         USERS[username] = hash_password("shared-login-placeholder")
     token = create_session(username)
     response = RedirectResponse(next)
     response.set_cookie(key="session_token", value=token, httponly=True)
+    response.set_cookie(key="gateway_sub", value=str(trusted_identity.get("sub", "")), httponly=True)
+    response.set_cookie(key="gateway_login_ts", value=str(trusted_identity.get("login_timestamp", "")), httponly=True)
     return response
 
 @app.post("/chatbot/admin/register")
