@@ -12,11 +12,9 @@ import MyNavbar from "./components/Navbar";
 import Protected from "./pages/Protected";
 import { APP_NAME, APP_URI_PREFIX } from "./constants";
 import HomePage from "./pages/HomePage";
-import { validateToken } from "./api/utility";
 import Footer from "./components/Footer";
 
 const App = () => {
-  const isAuthenticated = validateToken();
   return (
     <AppContextProvider>
       <div className="App">
@@ -30,7 +28,7 @@ const App = () => {
                 <Route
                   path={"dashboard"}
                   element={
-                    <Protected loggedIn={isAuthenticated}>
+                    <Protected>
                       <Dashbaord />
                     </Protected>
                   }
@@ -38,7 +36,7 @@ const App = () => {
                 <Route
                   path="project"
                   element={
-                    <Protected loggedIn={isAuthenticated}>
+                    <Protected>
                       <ProjectContextProvider>
                         <Project />
                       </ProjectContextProvider>
@@ -48,7 +46,7 @@ const App = () => {
                 <Route
                   path="query"
                   element={
-                    <Protected loggedIn={isAuthenticated}>
+                    <Protected>
                       <Curate />
                     </Protected>
                   }
@@ -56,7 +54,7 @@ const App = () => {
                 <Route
                   path="profile"
                   element={
-                    <Protected loggedIn={isAuthenticated}>
+                    <Protected>
                       <Profile />
                     </Protected>
                   }

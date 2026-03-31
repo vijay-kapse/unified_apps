@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, Form, Request, Response, Cookie
+from fastapi import FastAPI, File, UploadFile, Form, Response, Cookie
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse, RedirectResponse
 import os
@@ -139,7 +139,7 @@ async def clear_uploaded_files():
 
 
 @app.post("/chatbot/admin/logout")
-async def admin_logout(response: Response, session_token: str = Cookie(None), return_to: str = PORTAL_HOME_URL):
+async def admin_logout(session_token: str = Cookie(None), return_to: str = PORTAL_HOME_URL):
     if session_token and session_token in SESSIONS:
         del SESSIONS[session_token]
     response = RedirectResponse(return_to)
