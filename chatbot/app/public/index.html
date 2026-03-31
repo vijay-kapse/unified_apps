@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF Chatbot - Unified Workspace Entry</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
+      color: #0f172a;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      width: min(760px, 94vw);
+      background: white;
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
+      border: 1px solid #dbeafe;
+    }
+    h1 { margin-top: 0; }
+    p { color: #475569; line-height: 1.65; }
+    .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 22px; }
+    .btn {
+      display: inline-block;
+      text-decoration: none;
+      padding: 12px 18px;
+      border-radius: 12px;
+      font-weight: 700;
+    }
+    .primary { background: #2563eb; color: white; }
+    .secondary { background: #e2e8f0; color: #0f172a; }
+    .note {
+      margin-top: 22px;
+      padding: 16px;
+      border-radius: 12px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>PDF Chatbot Workspace</h1>
+    <p>
+      This copied chatbot workspace now participates in the unified platform entry model.
+      Use the shared login page to enter with a common identity flow, then continue into chatbot administration and document interaction.
+    </p>
+    <div class="actions">
+      <a class="btn primary" href="/unified-login.html?app=chatbot">Continue to Unified Login</a>
+      <a class="btn secondary" href="/chatbot/static/admin.html">Open Admin Entry</a>
+    </div>
+    <div class="note">
+      Backend convergence step added in the copied workspace: <code>/chatbot/shared-entry</code> can now create a lightweight shared session from portal-routed identity parameters.
+    </div>
+  </div>
+</body>
+</html>
