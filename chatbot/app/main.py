@@ -1,6 +1,6 @@
-from fastapi import FastAPI, File, UploadFile, Form, Request, Response, Cookie, HTTPException, status
+from fastapi import FastAPI, File, UploadFile, Form, Request, Response, Cookie
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 import os
 from app.text_extractor import extract_text_from_pdf
 try:
@@ -22,7 +22,7 @@ import hmac
 import json
 import secrets
 import glob
-import time
+from app.session_store import SessionStore
 
 app = FastAPI()
 
@@ -38,7 +38,19 @@ app.mount("/chatbot/static", StaticFiles(directory=PUBLIC_DIR), name="chatbot_st
 print(f"Static files mounted from: {PUBLIC_DIR}")
 
 USERS = {}  # username->password_hash
-SESSIONS = {}  # session_token--> username
+SESSION_STORE = SessionStore()
+COOKIE_NAME = "session_token"
+COOKIE_PATH = os.getenv("SESSION_COOKIE_PATH", "/")
+COOKIE_DOMAIN = os.getenv("SESSION_COOKIE_DOMAIN")
+COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "lax")
+COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "false").lower() == "true"
+UNIFIED_LOGOUT_REDIRECT = os.getenv("UNIFIED_LOGOUT_REDIRECT", "/unified-logout.html")
+
+PROTECTED_PATH_PREFIXES = (
+    "/chatbot/upload",
+    "/chatbot/query",
+    "/chatbot/uploaded_files",
+)
 
 # --- Track all uploaded document titles for multi-file support ---
 app.state.uploaded_document_titles = []
@@ -46,15 +58,43 @@ app.state.uploaded_document_titles = []
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
-def create_session(username: str) -> str:
+def create_session(username: str, email: str, name: str = "", google_sub: str = "") -> dict:
     token = secrets.token_hex(16)
-    SESSIONS[token] = username
-    return token
+    return SESSION_STORE.create_session(token, username, email, name, google_sub)
 
-def get_current_user(session_token: str = Cookie(None)):
-    if session_token and session_token in SESSIONS:
-        return SESSIONS[session_token]
-    return None
+def get_current_session(session_token: str = Cookie(None, alias=COOKIE_NAME)):
+    return SESSION_STORE.get_session(session_token)
+
+def set_session_cookie(response: Response, token: str):
+    response.set_cookie(
+        key=COOKIE_NAME,
+        value=token,
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
+        path=COOKIE_PATH,
+        domain=COOKIE_DOMAIN,
+    )
+
+def clear_session_cookie(response: Response):
+    response.delete_cookie(
+        key=COOKIE_NAME,
+        path=COOKIE_PATH,
+        domain=COOKIE_DOMAIN,
+    )
+
+
+@app.middleware("http")
+async def validate_session_for_protected_routes(request: Request, call_next):
+    path = request.url.path
+    if any(path.startswith(prefix) for prefix in PROTECTED_PATH_PREFIXES):
+        session_token = request.cookies.get(COOKIE_NAME)
+        session_data = SESSION_STORE.get_session(session_token)
+        if not session_data:
+            return JSONResponse({"error": "Authentication required"}, status_code=401)
+        request.state.session = session_data
+    return await call_next(request)
+
 
 def _b64_decode(data: str) -> bytes:
     return base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))
@@ -89,19 +129,24 @@ def _validate_gateway_token(raw_token: str):
 
 
 @app.get("/chatbot/shared-entry")
-async def chatbot_shared_entry(gateway_token: str, next: str = "/chatbot/"):
-    trusted_identity = _validate_gateway_token(gateway_token)
-    if trusted_identity is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid gateway_token")
+async def chatbot_shared_entry(
+    next: str = "/chatbot/",
+    sharedEmail: str = "",
+    email: str = "",
+    name: str = "",
+    google_sub: str = "",
+):
+    resolved_email = email or sharedEmail
+    if not resolved_email:
+        return JSONResponse({"error": "email is required"}, status_code=400)
 
-    username = trusted_identity["email"].split("@")[0]
+    username = resolved_email.split("@")[0]
     if username not in USERS:
         USERS[username] = hash_password("shared-login-placeholder")
-    token = create_session(username)
+
+    session_data = create_session(username, resolved_email, name, google_sub)
     response = RedirectResponse(next)
-    response.set_cookie(key="session_token", value=token, httponly=True)
-    response.set_cookie(key="gateway_sub", value=str(trusted_identity.get("sub", "")), httponly=True)
-    response.set_cookie(key="gateway_login_ts", value=str(trusted_identity.get("login_timestamp", "")), httponly=True)
+    set_session_cookie(response, session_data["session_token"])
     return response
 
 @app.post("/chatbot/admin/register")
@@ -112,18 +157,18 @@ async def admin_register(username: str = Form(...), password: str = Form(...)):
     return {"message": "Admin user registered successfully"}
 
 @app.post("/chatbot/admin/login")
-async def admin_login(response: Response, username: str = Form(...), password: str = Form(...)):
+async def admin_login(response: Response, username: str = Form(...), password: str = Form(...), email: str = Form(""), name: str = Form(""), google_sub: str = Form("")):
     if username not in USERS or USERS[username] != hash_password(password):
         return JSONResponse({"error": "Invalid credentials"}, status_code=401)
-    token = create_session(username)
-    response.set_cookie(key="session_token", value=token, httponly=True)
+    session_data = create_session(username, email or f"{username}@local", name, google_sub)
+    set_session_cookie(response, session_data["session_token"])
     return {"message": "Login successful"}
 
 @app.get("/chatbot/admin/check")
-async def admin_check(session_token: str = Cookie(None)):
-    user = get_current_user(session_token)
-    if user:
-        return {"logged_in": True, "username": user}
+async def admin_check(session_token: str = Cookie(None, alias=COOKIE_NAME)):
+    session_data = get_current_session(session_token)
+    if session_data:
+        return {"logged_in": True, "profile": session_data}
     return {"logged_in": False}
 
 @app.get("/chatbot/uploaded_files")
@@ -164,11 +209,11 @@ async def clear_uploaded_files():
         )
 
 @app.post("/chatbot/admin/logout")
-async def admin_logout(response: Response, session_token: str = Cookie(None)):
-    if session_token and session_token in SESSIONS:
-        del SESSIONS[session_token]
-    response.delete_cookie("session_token")
-    return {"message": "Logged out"}
+async def admin_logout(session_token: str = Cookie(None, alias=COOKIE_NAME)):
+    SESSION_STORE.delete_session(session_token)
+    response = RedirectResponse(url=UNIFIED_LOGOUT_REDIRECT, status_code=303)
+    clear_session_cookie(response)
+    return response
 
 # --- Modified upload endpoint for multiple files ---
 @app.post("/chatbot/upload")
