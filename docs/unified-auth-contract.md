@@ -1,73 +1,60 @@
 # Unified Auth Contract
 
 ## Purpose
-Define the shared-login contract for the copied unified platform workspace in `/home/vkapse`.
+Define the shared-login contract for the in-repo unified platform gateway at `gateway/`.
 
-## Validation status summary
-- Portal runtime: validated via HTTP on `http://127.0.0.1:3005`
-- Survey shared-login bridge: code-level integrated, runtime pending intended Docker path
-- Argus shared-login bridge: code-level integrated, runtime pending intended Python/DRF environment
-- Sysreview shared-login exchange: code-level integrated, runtime pending intended Java/Gradle runtime and secrets
-- Chatbot shared-entry bridge: code-level integrated, closest to runnable due to copied venv, but runtime not fully exercised yet
+## Canonical login origin (in-repo)
+All human login begins from gateway pages:
+- `gateway/web/index.html` at route `/`
+- `gateway/web/unified-login.html` at route `/unified-login`
 
-## Canonical login origin
-All human login should begin from the unified portal:
-- `/index.html`
-- `/unified-login.html`
+## Gateway auth ownership
+Gateway backend owns auth lifecycle:
+- OAuth start: `GET /auth/google/start`
+- OAuth callback: `GET /auth/google/callback`
+- Logout: `GET /auth/logout`
 
-## Identity payload shape
-Current copied-workspace shared identity shape:
-- `email` (required)
-- `firstName` (optional)
-- `lastName` (optional)
-- `username` (optional for apps that want a local username)
-- `next` (optional redirect target)
+Implementation path: `gateway/app.py`.
 
-## App-specific shared-login entrypoints
+## Identity/session model
+On successful callback, gateway stores a session user object with:
+- `email`
+- `given_name`
+- `family_name`
+- `name`
+- `sub`
 
-### Survey
-- Entry route: `/survey/accounts/sso/login/`
-- Callback route: `/survey/accounts/sso/callback/`
-- Required payload: `email`
-- Local auth result: Django session
-- Runtime status: scaffolded in copied code, runtime not yet validated in compose path
+Session storage currently uses Flask signed cookies (`session`).
 
-### Argus
-- Entry route: `/api/sso/login/`
-- Callback route: `/api/sso/callback/`
-- Required payload: `email`
-- Local auth result: Django session + ensure_session(request)
-- Runtime status: scaffolded in copied code, runtime not yet validated in DRF-capable environment
+## App launch contract
+Gateway launch routes require authenticated gateway session before app redirect:
+- `/survey` -> redirect target `SURVEY_URL`
+- `/argus` -> redirect target `ARGUS_URL`
+- `/sysreview` -> redirect target `SYSREVIEW_URL`
+- `/chatbot` -> redirect target `CHATBOT_URL`
 
-### Sysreview
-- UI shared entry: `/sysreview/auth` now points users to portal login
-- API shared exchange: `/api/v1/auth/shared-login`
-- Existence probe: `/api/v1/auth/shared-login/exists`
-- Required payload: `email`, optional `firstName`, `lastName`, `username`
-- Local auth result: Sysreview JWT auth token
-- Runtime status: scaffolded in copied code, runtime not yet validated in Java app runtime
+Unauthenticated behavior:
+- redirect to `/unified-login` and continue through `/auth/google/start`.
 
-### Chatbot
-- UI shared entry: `/chatbot/` now lands on shared workspace entry page
-- Backend shared entry: `/chatbot/shared-entry`
-- Required payload: `sharedEmail`, optional `next`
-- Local auth result: lightweight session cookie (`session_token`)
-- Runtime status: scaffolded in copied code, likely easiest next runtime validation target due to copied venv
+## Runtime startup command
 
-## Logout behavior
-Current copied-workspace model:
-- Common platform return page: `/unified-logout.html`
-- App-local sessions may still require app-specific logout
-- Full coordinated logout is not yet implemented across all four apps
+```bash
+cd gateway
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python app.py
+```
 
-## Readiness interpretation
-- `Survey`: partial, scaffolded
-- `Argus`: partial, scaffolded
-- `Sysreview`: partial, scaffolded
-- `Chatbot`: partial, scaffolded and closest to runtime validation
+## Environment variables
+Required for OAuth:
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GOOGLE_REDIRECT_URI`
+- `GATEWAY_SECRET_KEY`
 
-## Contract hardening priorities
-1. Validate Chatbot shared-entry runtime path
-2. Validate Survey compose-based bridge path
-3. Validate Argus bridge path in correct Python environment
-4. Wire Sysreview frontend token handling to shared-login exchange
+Optional app redirect targets:
+- `SURVEY_URL`
+- `ARGUS_URL`
+- `SYSREVIEW_URL`
+- `CHATBOT_URL`

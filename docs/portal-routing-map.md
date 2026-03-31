@@ -1,37 +1,38 @@
 # Unified Portal Routing Map
 
+## Gateway source location (in-repo)
+- Gateway backend: `gateway/app.py`
+- Gateway static homepage: `gateway/web/index.html`
+- Gateway static login entry: `gateway/web/unified-login.html`
+- Gateway static logout page: `gateway/web/unified-logout.html`
+
+## Startup command
+From repository root:
+
+```bash
+cd gateway
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python app.py
+```
+
+Default runtime URL: `http://127.0.0.1:3005`
+
 ## Portal pages
-- /index.html -> Unified Research Portal landing page
-- /unified-login.html -> Shared login origin for all four apps
-- /unified-logout.html -> Shared logout return page
+- `/` -> Unified Research Gateway landing page
+- `/unified-login` -> Shared login origin for all four apps
+- `/unified-logout` -> Shared logout return page
 
-## Current shared-login routing behavior
+## Gateway-owned auth routes
+- `/auth/google/start` -> Starts Google OAuth flow
+- `/auth/google/callback` -> Handles authorization code exchange and stores gateway session
+- `/auth/logout` -> Clears gateway session and routes to `/unified-logout`
 
-### Survey
-- Portal login target: survey
-- Routed to: https://sysrev.cs.binghamton.edu/survey/accounts/sso/login/
-- Next default: /survey/
-- Copied backend bridge exists
+## App launch routing behavior (auth enforced before redirect)
+- `/survey` -> requires gateway session, then redirects to `SURVEY_URL`
+- `/argus` -> requires gateway session, then redirects to `ARGUS_URL`
+- `/sysreview` -> requires gateway session, then redirects to `SYSREVIEW_URL`
+- `/chatbot` -> requires gateway session, then redirects to `CHATBOT_URL`
 
-### Argus
-- Portal login target: argus
-- Routed to: https://sysrev.cs.binghamton.edu/api/sso/login/
-- Next default: /argus/home
-- Copied backend bridge exists
-
-### Sysreview
-- Portal login target: sysreview
-- Current portal route: https://sysrev.cs.binghamton.edu/sysreview/auth
-- Backend convergence route available in copied API: /api/v1/auth/shared-login
-- Next integration step: add frontend callback/token consumption for shared-login-issued JWT
-
-### Chatbot
-- Portal login target: chatbot
-- Current portal route: https://sysrev.cs.binghamton.edu/chatbot/
-- Copied backend convergence route: /chatbot/shared-entry
-- Next integration step: portal can eventually route directly to /chatbot/shared-entry once deployment routing is aligned
-
-## Unified experience target state
-- Portal is the only obvious human login origin
-- Each app accepts shared identity via bridge, callback, token exchange, or trusted entry endpoint
-- Local standalone login becomes secondary or removed
+If user is unauthenticated, all launch routes redirect to `/unified-login` first.
