@@ -4,7 +4,15 @@ from django.http import HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView
-from .forms import CustomUserCreationForm  
+
+import base64
+import hashlib
+import hmac
+import json
+import os
+import time
+from .forms import CustomUserCreationForm
+
 
 class SignUpView(CreateView):
     form_class = CustomUserCreationForm
@@ -25,27 +33,66 @@ class SignUpView(CreateView):
         if group:
             user.groups.add(group)
 
-        login(self.request, user) 
+        login(self.request, user)
         return super().form_valid(form)
 
 
+def _b64_decode(data: str) -> bytes:
+    return base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))
+
+
+def _validate_gateway_token(raw_token: str):
+    try:
+        payload_b64, sig_b64 = raw_token.split('.', 1)
+    except ValueError:
+        return None
+
+    secret = os.getenv("GATEWAY_SESSION_SECRET")
+    if not secret:
+        return None
+
+    expected_sig = base64.urlsafe_b64encode(
+        hmac.new(secret.encode("utf-8"), payload_b64.encode("utf-8"), hashlib.sha256).digest()
+    ).decode("utf-8").rstrip("=")
+    if not hmac.compare_digest(sig_b64, expected_sig):
+        return None
+
+    try:
+        payload = json.loads(_b64_decode(payload_b64))
+    except Exception:  # noqa: BLE001
+        return None
+
+    if int(payload.get("exp", 0)) < int(time.time()):
+        return None
+    if not payload.get("email") or not payload.get("sub"):
+        return None
+    return payload
+
+
 def sso_login(request):
-    mock_email = request.GET.get('email')
     next_url = request.GET.get('next', '/survey/')
-    if not mock_email:
-        return HttpResponseBadRequest('Missing email query parameter')
-    callback_url = f"/survey/accounts/sso/callback/?email={mock_email}&next={next_url}"
+    gateway_base = os.getenv("GATEWAY_BASE_URL", "")
+    if not gateway_base:
+        return HttpResponseBadRequest('Missing GATEWAY_BASE_URL configuration')
+    callback_url = f"{gateway_base}/auth/google/start?next=/survey/accounts/sso/callback/?next={next_url}"
     return redirect(callback_url)
 
 
 def sso_callback(request):
-    email = request.GET.get('email')
     next_url = request.GET.get('next', '/survey/')
-    if not email:
-        return HttpResponseBadRequest('Missing email query parameter')
+    gateway_token = request.GET.get('gateway_token')
+    if not gateway_token:
+        return HttpResponseBadRequest('Missing gateway_token query parameter')
 
-    first_name = request.GET.get('first_name', '')
-    last_name = request.GET.get('last_name', '')
+    trusted_identity = _validate_gateway_token(gateway_token)
+    if trusted_identity is None:
+        return HttpResponseBadRequest('Invalid gateway_token')
+
+    email = trusted_identity["email"]
+    full_name = trusted_identity.get("name", "")
+    name_parts = full_name.split(" ", 1)
+    first_name = name_parts[0] if name_parts else ""
+    last_name = name_parts[1] if len(name_parts) > 1 else ""
     username = email.split('@')[0][:150]
 
     user = User.objects.filter(email=email).first()
@@ -65,4 +112,6 @@ def sso_callback(request):
         )
 
     login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+    request.session['gateway_sub'] = trusted_identity.get('sub')
+    request.session['gateway_login_timestamp'] = trusted_identity.get('login_timestamp')
     return redirect(next_url or '/survey/')
