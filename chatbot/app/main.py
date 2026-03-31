@@ -16,7 +16,10 @@ except Exception as e:
     def chatbot_response(query, document_titles=None):
         titles = document_titles or []
         return f"Copied unified runtime placeholder response for query: {query}. Active documents: {', '.join(titles) if titles else 'none'}."
+import base64
 import hashlib
+import hmac
+import json
 import secrets
 import glob
 from app.session_store import SessionStore
@@ -91,6 +94,38 @@ async def validate_session_for_protected_routes(request: Request, call_next):
             return JSONResponse({"error": "Authentication required"}, status_code=401)
         request.state.session = session_data
     return await call_next(request)
+
+
+def _b64_decode(data: str) -> bytes:
+    return base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))
+
+
+def _validate_gateway_token(raw_token: str):
+    try:
+        payload_b64, sig_b64 = raw_token.split('.', 1)
+    except ValueError:
+        return None
+
+    secret = os.getenv("GATEWAY_SESSION_SECRET")
+    if not secret:
+        return None
+
+    expected_sig = base64.urlsafe_b64encode(
+        hmac.new(secret.encode("utf-8"), payload_b64.encode("utf-8"), hashlib.sha256).digest()
+    ).decode("utf-8").rstrip("=")
+    if not hmac.compare_digest(sig_b64, expected_sig):
+        return None
+
+    try:
+        payload = json.loads(_b64_decode(payload_b64))
+    except Exception:
+        return None
+
+    if int(payload.get("exp", 0)) < int(time.time()):
+        return None
+    if not payload.get("email") or not payload.get("sub"):
+        return None
+    return payload
 
 
 @app.get("/chatbot/shared-entry")

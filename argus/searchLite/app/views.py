@@ -6,6 +6,10 @@ from django.contrib.auth import login, logout, authenticate, get_user_model
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
 from datetime import datetime, timedelta
+import base64
+import hashlib
+import hmac
+import time
 
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -81,27 +85,66 @@ def register_view(request):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
+def _b64_decode(data: str) -> bytes:
+    return base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))
+
+
+def _validate_gateway_token(raw_token: str):
+    try:
+        payload_b64, sig_b64 = raw_token.split('.', 1)
+    except ValueError:
+        return None
+
+    secret = os.getenv("GATEWAY_SESSION_SECRET")
+    if not secret:
+        return None
+
+    expected_sig = base64.urlsafe_b64encode(
+        hmac.new(secret.encode("utf-8"), payload_b64.encode("utf-8"), hashlib.sha256).digest()
+    ).decode("utf-8").rstrip("=")
+    if not hmac.compare_digest(sig_b64, expected_sig):
+        return None
+
+    try:
+        payload = json.loads(_b64_decode(payload_b64))
+    except Exception:
+        return None
+
+    if int(payload.get("exp", 0)) < int(time.time()):
+        return None
+    if not payload.get("email") or not payload.get("sub"):
+        return None
+    return payload
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def sso_login_view(request):
-    email = request.GET.get('email')
     next_url = request.GET.get('next', '/argus/home')
-    if not email:
-        return HttpResponseBadRequest('Missing email query parameter')
-    callback_url = f"/api/sso/callback/?email={email}&next={next_url}"
+    gateway_base = os.getenv("GATEWAY_BASE_URL", "")
+    if not gateway_base:
+        return HttpResponseBadRequest('Missing GATEWAY_BASE_URL configuration')
+    callback_url = f"{gateway_base}/auth/google/start?next=/api/sso/callback/?next={next_url}"
     return redirect(callback_url)
 
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def sso_callback_view(request):
-    email = request.GET.get('email')
     next_url = request.GET.get('next', '/argus/home')
-    if not email:
-        return HttpResponseBadRequest('Missing email query parameter')
+    gateway_token = request.GET.get('gateway_token')
+    if not gateway_token:
+        return HttpResponseBadRequest('Missing gateway_token query parameter')
 
-    first_name = request.GET.get('first_name', '')
-    last_name = request.GET.get('last_name', '')
+    trusted_identity = _validate_gateway_token(gateway_token)
+    if trusted_identity is None:
+        return HttpResponseBadRequest('Invalid gateway_token')
+
+    email = trusted_identity["email"]
+    full_name = trusted_identity.get("name", "")
+    name_parts = full_name.split(" ", 1)
+    first_name = name_parts[0] if name_parts else ""
+    last_name = name_parts[1] if len(name_parts) > 1 else ""
 
     user = get_user_model().objects.filter(email=email).first()
     if user is None:
@@ -114,6 +157,8 @@ def sso_callback_view(request):
 
     login(request, user, backend='app.backends.EmailBackend')
     ensure_session(request)
+    request.session['gateway_sub'] = trusted_identity.get('sub')
+    request.session['gateway_login_timestamp'] = trusted_identity.get('login_timestamp')
     return redirect(next_url or '/argus/home')
 
 
