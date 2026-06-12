@@ -4,7 +4,6 @@ import {
   Flex,
   HStack,
   IconButton,
-  Image,
   Menu,
   MenuButton,
   MenuItem,
@@ -15,6 +14,34 @@ import {
 import { ChevronDownIcon, HamburgerIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+
+const ArgusLogoMark = () => (
+  <Box
+    as="svg"
+    viewBox="0 0 48 48"
+    boxSize="42px"
+    flexShrink={0}
+    role="img"
+    aria-label="ARGUS logo"
+  >
+    <defs>
+      <linearGradient id="argusHeaderBg" x1="8" y1="6" x2="40" y2="42" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stopColor="#111827" />
+        <stop offset="1" stopColor="#475569" />
+      </linearGradient>
+      <linearGradient id="argusHeaderAccent" x1="16" y1="16" x2="38" y2="39" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stopColor="#a7f3d0" />
+        <stop offset="1" stopColor="#60a5fa" />
+      </linearGradient>
+    </defs>
+    <rect x="5" y="5" width="38" height="38" rx="11" fill="url(#argusHeaderBg)" />
+    <path d="M15 13h14l7 7v14H15z" fill="#f8fafc" opacity="0.96" />
+    <path d="M29 13v7h7" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinejoin="round" />
+    <path d="M19 24h11M19 29h8" stroke="#64748b" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="29" cy="28" r="8" fill="none" stroke="url(#argusHeaderAccent)" strokeWidth="3" />
+    <path d="M35 34l6 6" stroke="#a7f3d0" strokeWidth="3" strokeLinecap="round" />
+  </Box>
+);
 
 const Navbar = ({ onMobileMenuOpen }) => {
   const { user, logout } = useAuth();
@@ -27,15 +54,18 @@ const Navbar = ({ onMobileMenuOpen }) => {
 
   return (
     <Box
+      as="header"
       bg={useColorModeValue('white', 'gray.900')}
-      px={4}
+      borderBottom="1px solid"
+      borderColor={useColorModeValue('gray.200', 'gray.700')}
+      px={{ base: 4, md: 6 }}
       position="fixed"
+      top={0}
       w="full"
-      boxShadow="sm"
       zIndex="sticky"
     >
-      <Flex h={16} alignItems="center" justifyContent="space-between" gap={4}>
-        <HStack spacing={3} minW={0}>
+      <Flex h="72px" alignItems="center" justifyContent="space-between" gap={4}>
+        <HStack spacing={4} minW={0}>
           <IconButton
             display={{ base: 'flex', md: 'none' }}
             onClick={onMobileMenuOpen}
@@ -45,15 +75,10 @@ const Navbar = ({ onMobileMenuOpen }) => {
           />
 
           <HStack spacing={3} minW={0}>
-            <Image
-              src={`${process.env.PUBLIC_URL}/argus-logo.svg`}
-              alt="ARGUS logo"
-              boxSize="40px"
-              objectFit="contain"
-            />
+            <ArgusLogoMark />
             <Text
-              fontSize={{ base: 'xl', md: '2xl' }}
-              fontWeight="bold"
+              fontSize={{ base: '2xl', md: '3xl' }}
+              fontWeight="800"
               color="brand.700"
               lineHeight="1"
               noOfLines={1}
