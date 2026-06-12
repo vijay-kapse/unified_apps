@@ -3,63 +3,491 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PDF Chatbot - Unified Workspace Entry</title>
+  <title>Quest - Q&A for Your Docs</title>
   <style>
+    :root {
+      --ink: #0f172a;
+      --muted: #475569;
+      --line: #d8e3f0;
+      --panel: #ffffff;
+      --soft: #f5f8fc;
+      --blue: #1d4ed8;
+      --cyan: #0891b2;
+      --green: #15803d;
+      --amber: #b45309;
+      --shadow: 0 18px 44px rgba(15, 23, 42, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
-      font-family: Inter, Arial, sans-serif;
-      background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
-      color: #0f172a;
       min-height: 100vh;
+      font-family:
+        Inter,
+        "Segoe UI",
+        Arial,
+        sans-serif;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, rgba(219, 234, 254, 0.82), rgba(255, 255, 255, 0.94) 45%),
+        #f8fafc;
+    }
+
+    .shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    .topbar {
       display: flex;
       align-items: center;
-      justify-content: center;
-      padding: 24px;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 22px clamp(20px, 5vw, 72px);
+      border-bottom: 1px solid rgba(216, 227, 240, 0.82);
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(14px);
     }
-    .card {
-      width: min(760px, 94vw);
-      background: white;
-      border-radius: 20px;
-      padding: 28px;
-      box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
-      border: 1px solid #dbeafe;
-    }
-    h1 { margin-top: 0; }
-    p { color: #475569; line-height: 1.65; }
-    .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 22px; }
-    .btn {
-      display: inline-block;
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
       text-decoration: none;
-      padding: 12px 18px;
+      color: inherit;
+    }
+
+    .brand-mark {
+      width: 44px;
+      height: 44px;
+      flex: 0 0 auto;
       border-radius: 12px;
+      box-shadow: 0 12px 24px rgba(29, 78, 216, 0.18);
+    }
+
+    .brand-name {
+      display: grid;
+      gap: 1px;
+    }
+
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .brand-subtitle {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .main {
+      width: min(1180px, calc(100vw - 40px));
+      margin: 0 auto;
+      padding: clamp(34px, 6vw, 70px) 0;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+      gap: clamp(26px, 4vw, 54px);
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      padding: 8px 12px;
+      margin-bottom: 18px;
+      border: 1px solid #bfdbfe;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: #1e3a8a;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 780px;
+      font-size: clamp(42px, 7vw, 72px);
+      line-height: 0.98;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 680px;
+      margin: 22px 0 0;
+      color: var(--muted);
+      font-size: clamp(17px, 2vw, 21px);
+      line-height: 1.65;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 30px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 12px 18px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 800;
+      text-decoration: none;
+      transition:
+        transform 160ms ease,
+        box-shadow 160ms ease,
+        background-color 160ms ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      color: #ffffff;
+      background: var(--blue);
+      box-shadow: 0 14px 24px rgba(29, 78, 216, 0.22);
+    }
+
+    .btn-primary:hover {
+      background: #1e40af;
+    }
+
+    .btn-secondary {
+      color: var(--ink);
+      border-color: var(--line);
+      background: #ffffff;
+    }
+
+    .btn-secondary:hover {
+      background: #f8fafc;
+    }
+
+    .workspace {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .workspace-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+      background: #f8fafc;
+    }
+
+    .window-dots {
+      display: flex;
+      gap: 7px;
+    }
+
+    .window-dots span {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: #94a3b8;
+    }
+
+    .window-dots span:nth-child(1) {
+      background: #ef4444;
+    }
+
+    .window-dots span:nth-child(2) {
+      background: #f59e0b;
+    }
+
+    .window-dots span:nth-child(3) {
+      background: #22c55e;
+    }
+
+    .workspace-title {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .workspace-body {
+      display: grid;
+      gap: 14px;
+      padding: 20px;
+    }
+
+    .upload-strip {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 14px;
+      align-items: center;
+      padding: 15px;
+      border: 1px dashed #93c5fd;
+      border-radius: 8px;
+      background: #eff6ff;
+    }
+
+    .file-icon {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      color: #ffffff;
+      background: var(--cyan);
+      font-weight: 900;
+    }
+
+    .small-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .question-box {
+      display: grid;
+      gap: 12px;
+      padding: 18px;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      background: #f0fdf4;
+    }
+
+    .question {
+      min-height: 52px;
+      padding: 14px 16px;
+      border: 1px solid #86efac;
+      border-radius: 8px;
+      color: #166534;
+      background: #ffffff;
       font-weight: 700;
     }
-    .primary { background: #2563eb; color: white; }
-    .secondary { background: #e2e8f0; color: #0f172a; }
-    .note {
-      margin-top: 22px;
-      padding: 16px;
-      border-radius: 12px;
-      background: #f8fafc;
-      border: 1px solid #cbd5e1;
-      color: #334155;
+
+    .answer {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+    }
+
+    .answer h2 {
+      margin: 0 0 10px;
+      font-size: 18px;
+    }
+
+    .answer p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 30px;
+    }
+
+    .meta-card {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.82);
+    }
+
+    .meta-card strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 16px;
+    }
+
+    .meta-card span {
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .footer {
+      padding: 22px clamp(20px, 5vw, 72px);
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.82);
+      font-size: 14px;
+    }
+
+    code {
+      padding: 2px 5px;
+      border-radius: 6px;
+      background: #e2e8f0;
+      color: #1e293b;
+    }
+
+    @media (max-width: 860px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .meta-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .nav-actions,
+      .nav-actions .btn {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .main {
+        width: min(100vw - 28px, 1180px);
+      }
+
+      h1 {
+        font-size: 40px;
+      }
+
+      .actions,
+      .actions .btn {
+        width: 100%;
+      }
+
+      .upload-strip {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>PDF Chatbot Workspace</h1>
-    <p>
-      This copied chatbot workspace now participates in the unified platform entry model.
-      Use the shared login page to enter with a common identity flow, then continue into chatbot administration and document interaction.
-    </p>
-    <div class="actions">
-      <a class="btn primary" href="/unified-login.html?app=chatbot">Continue to Unified Login</a>
-      <a class="btn secondary" href="/chatbot/static/admin.html">Open Admin Entry</a>
-    </div>
-    <div class="note">
-      Backend convergence step added in the copied workspace: <code>/chatbot/shared-entry</code> can now create a lightweight shared session from portal-routed identity parameters.
-    </div>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="/chatbot/static/index.html" aria-label="Quest home">
+        <svg class="brand-mark" viewBox="0 0 64 64" role="img" aria-label="Quest logo">
+          <defs>
+            <linearGradient id="questLogo" x1="10" y1="8" x2="54" y2="58" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stop-color="#1d4ed8" />
+              <stop offset="0.58" stop-color="#0891b2" />
+              <stop offset="1" stop-color="#15803d" />
+            </linearGradient>
+          </defs>
+          <rect x="6" y="6" width="52" height="52" rx="14" fill="url(#questLogo)" />
+          <path d="M21 27c0-7 5-12 12-12s12 5 12 12-5 12-12 12h-2l-7 7 2-9c-3-2-5-6-5-10Z" fill="#ffffff" opacity="0.96" />
+          <path d="M28 27h10M28 33h7" stroke="#1e40af" stroke-width="3" stroke-linecap="round" />
+        </svg>
+        <span class="brand-name">
+          <span class="brand-title">Quest</span>
+          <span class="brand-subtitle">Document Q&A</span>
+        </span>
+      </a>
+
+      <nav class="nav-actions" aria-label="Quest actions">
+        <a class="btn btn-secondary" href="/chatbot/static/admin.html">Admin Entry</a>
+        <a class="btn btn-primary" href="/unified-login.html?app=chatbot">Unified Login</a>
+      </nav>
+    </header>
+
+    <main class="main">
+      <section class="hero" aria-labelledby="quest-title">
+        <div>
+          <div class="eyebrow"><span class="dot"></span> Shared platform workspace</div>
+          <h1 id="quest-title">Quest q&a for your docs</h1>
+          <p class="lead">
+            Upload research documents, keep your workspace organized, and ask focused questions against the files already indexed for your session.
+          </p>
+          <div class="actions">
+            <a class="btn btn-primary" href="/unified-login.html?app=chatbot">Continue to Unified Login</a>
+            <a class="btn btn-secondary" href="/chatbot/static/admin.html">Open Admin Entry</a>
+          </div>
+        </div>
+
+        <aside class="workspace" aria-label="Quest interface preview">
+          <div class="workspace-header">
+            <div class="window-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+            <div class="workspace-title">Quest workspace</div>
+          </div>
+          <div class="workspace-body">
+            <div class="upload-strip">
+              <div class="file-icon">PDF</div>
+              <div>
+                <div class="small-label">Indexed documents</div>
+                <strong>3 files ready for Q&A</strong>
+              </div>
+              <div class="small-label">Live session</div>
+            </div>
+
+            <div class="question-box">
+              <div class="small-label">Question</div>
+              <div class="question">What are the main findings across the uploaded papers?</div>
+            </div>
+
+            <div class="answer">
+              <h2>Answer draft</h2>
+              <p>
+                Quest searches the active document set and returns a concise response grounded in the files available to the current session.
+              </p>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="meta-grid" aria-label="Quest capabilities">
+        <div class="meta-card">
+          <strong>Unified access</strong>
+          <span>Entry remains connected to the shared platform login flow used by the rest of the workspace.</span>
+        </div>
+        <div class="meta-card">
+          <strong>Document sessions</strong>
+          <span>Uploaded files stay grouped for the active session so questions can target the current document set.</span>
+        </div>
+        <div class="meta-card">
+          <strong>Admin path</strong>
+          <span>The existing admin entry remains available at <code>/chatbot/static/admin.html</code>.</span>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      Quest is part of the unified RMS workspace.
+    </footer>
   </div>
 </body>
 </html>
