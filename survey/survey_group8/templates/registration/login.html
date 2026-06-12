@@ -3,10 +3,10 @@
 {% block title %}Login{% endblock %}
 
 {% block content %}
-<main class="login-container">
+<section class="login-container">
   <h2 class="login-title">Log In</h2>
   <form method="get" action="{% url 'sso_login' %}" class="login-form">
-    <p>This copied version uses a mock centralized login bridge for testing. Enter an email to simulate SSO.</p>
+    <p>Continue through the shared platform login bridge to access Survey.</p>
     <p><label>Email <input type="email" name="email" required></label></p>
     <input type="hidden" name="next" value="/survey/">
     <div class="button-group">
@@ -14,5 +14,5 @@
       <a href="{% url 'home' %}" class="home-button">Home</a>
     </div>
   </form>
-</main>
+</section>
 {% endblock %}
