@@ -4,6 +4,8 @@ import {
   Container,
   VStack,
   Input,
+  InputGroup,
+  InputLeftElement,
   Button,
   Text,
   SimpleGrid,
@@ -12,8 +14,14 @@ import {
   Tag,
   TagLabel,
   TagCloseButton,
+  Flex,
+  Heading,
+  Icon,
+  Badge,
+  Divider,
 } from '@chakra-ui/react';
-import { useState, useEffect } from 'react';
+import { AddIcon, AttachmentIcon, SearchIcon } from '@chakra-ui/icons';
+import { useCallback, useEffect, useState } from 'react';
 import DocumentCard from './DocumentCard';
 
 const SearchResults = () => {
@@ -24,14 +32,7 @@ const SearchResults = () => {
   const [sessionDocuments, setSessionDocuments] = useState([]);
   const toast = useToast();
 
-  // Fetch documents in current session on mount
-  useEffect(() => {
-    fetchSessionDocuments();
-  }, []);
-
-
-
-  const fetchSessionDocuments = async () => {
+  const fetchSessionDocuments = useCallback(async () => {
     try {
       const response = await fetch('/api/results/', {
         credentials: 'include'
@@ -43,20 +44,22 @@ const SearchResults = () => {
     } catch (error) {
       console.error('Error fetching session documents:', error);
     }
-};
+  }, []);
 
+  useEffect(() => {
+    fetchSessionDocuments();
+  }, [fetchSessionDocuments]);
 
-
-const addSearchTerm = () => {
-  if (currentTerm.trim()) {
-    // Treat the entire input as one term, don't split words
-    const termExists = searchTerms.includes(currentTerm.trim());
-    if (!termExists) {
-      setSearchTerms([...searchTerms, currentTerm.trim()]);
+  const addSearchTerm = () => {
+    const term = currentTerm.trim();
+    if (term) {
+      const termExists = searchTerms.includes(term);
+      if (!termExists) {
+        setSearchTerms([...searchTerms, term]);
+      }
+      setCurrentTerm('');
     }
-    setCurrentTerm('');
-  }
-};
+  };
 
   const removeTerm = (indexToRemove) => {
     setSearchTerms(searchTerms.filter((_, index) => index !== indexToRemove));
@@ -67,181 +70,173 @@ const addSearchTerm = () => {
       addSearchTerm();
     }
   };
-//   const handleSearch = async () => {
-//     if (searchTerms.length === 0) {
-//       toast({
-//         title: 'Add search terms',
-//         description: 'Please add at least one search term',
-//         status: 'warning',
-//         duration: 3000,
-//       });
-//       return;
-//     }
+  const handleSearch = async () => {
+    const pendingTerm = currentTerm.trim();
+    const termsToSearch = pendingTerm && !searchTerms.includes(pendingTerm)
+      ? [...searchTerms, pendingTerm]
+      : searchTerms;
 
-//     setLoading(true);
-//     try {
-//       // Join all terms with ||| if there are multiple terms
-//       const searchQuery = searchTerms.length === 1 ? 
-//         searchTerms[0] : 
-//         searchTerms.join('|||');
-      
-//       const response = await fetch(`/api/search/?q=${encodeURIComponent(searchQuery)}`, {
-//         credentials: 'include'
-//       });
-//       const data = await response.json();
-
-//       if (response.ok) {
-//         setDocuments(data.documents || []);
-//         toast({
-//           title: `Found ${data.total_results} results`,
-//           status: 'success',
-//           duration: 3000,
-//         });
-//       } else {
-//         throw new Error(data.message || 'Search failed');
-//       }
-//     } catch (error) {
-//       toast({
-//         title: 'Search failed',
-//         description: error.message,
-//         status: 'error',
-//         duration: 5000,
-//       });
-//       setDocuments([]);
-//     } finally {
-//       setLoading(false);
-//     }
-// };
-// const handleSearch = async () => {
-//   if (searchTerms.length === 0) {
-//     toast({
-//       title: 'Add search terms',
-//       description: 'Please add at least one search term',
-//       status: 'warning',
-//       duration: 3000,
-//     });
-//     return;
-//   }
-
-//   setLoading(true);
-//   try {
-//     // Create separate parameters for each complete term
-//     const searchParams = new URLSearchParams();
-//     searchTerms.forEach(term => searchParams.append('q', term));
-    
-//     const response = await fetch(`/api/search/?${searchParams.toString()}`, {
-//       credentials: 'include'
-//     }
-//   );
-//     const data = await response.json();
-
-//     if (response.ok) {
-//       setDocuments(data.documents || []);
-//       toast({
-//         title: `Found ${data.total_results} results`,
-//         status: 'success',
-//         duration: 3000,
-//       });
-//     } else {
-//       throw new Error(data.message || 'Search failed');
-//     }
-//   } catch (error) {
-//     toast({
-//       title: 'Search failed',
-//       description: error.message,
-//       status: 'error',
-//       duration: 5000,
-//     });
-//     setDocuments([]);
-//   } finally {
-//     setLoading(false);
-//   }
-// };
-
-const handleSearch = async () => {
-  if (searchTerms.length === 0) {
-    toast({
-      title: 'Add search terms',
-      description: 'Please add at least one search term',
-      status: 'warning',
-      duration: 3000,
-    });
-    return;
-  }
-
-  setLoading(true);
-  try {
-    // Fetch the CSRF token from cookies
-    const csrfToken = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('csrftoken'))
-      ?.split('=')[1];
-
-    if (!csrfToken) {
-      throw new Error('CSRF token not found. Ensure you are authenticated.');
-    }
-
-    // Send the CSRF token in headers
-    const response = await fetch('/api/search/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': csrfToken,
-      },
-      credentials: 'include',
-      body: JSON.stringify({ q: searchTerms }),
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      setDocuments(data.documents || []);
+    if (termsToSearch.length === 0) {
       toast({
-        title: `Found ${data.total_results} results`,
-        status: 'success',
+        title: 'Add search terms',
+        description: 'Please add at least one search term',
+        status: 'warning',
         duration: 3000,
       });
-    } else {
-      throw new Error(data.message || 'Search failed');
+      return;
     }
-  } catch (error) {
-    toast({
-      title: 'Search failed',
-      description: error.message,
-      status: 'error',
-      duration: 5000,
-    });
-    setDocuments([]);
-  } finally {
-    setLoading(false);
-  }
-};
+
+    setLoading(true);
+    setSearchTerms(termsToSearch);
+    setCurrentTerm('');
+    try {
+      const csrfToken = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrftoken'))
+        ?.split('=')[1];
+
+      if (!csrfToken) {
+        throw new Error('CSRF token not found. Ensure you are authenticated.');
+      }
+
+      const response = await fetch('/api/search/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+        },
+        credentials: 'include',
+        body: JSON.stringify({ q: termsToSearch }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setDocuments(data.documents || []);
+        toast({
+          title: `Found ${data.total_results} results`,
+          status: 'success',
+          duration: 3000,
+        });
+      } else {
+        throw new Error(data.message || 'Search failed');
+      }
+    } catch (error) {
+      toast({
+        title: 'Search failed',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+      });
+      setDocuments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const totalMatches = documents.reduce((sum, doc) => {
+    if (!doc.matches) return sum;
+    return sum + Object.values(doc.matches).reduce((inner, positions) => inner + positions.length, 0);
+  }, 0);
 
   return (
-    <Container maxW="container.xl" py={8}>
-      <VStack spacing={6}>
-        {/* Search Section */}
-        <Box w="full" p={6} bg="white" borderRadius="lg" shadow="base">
-          <VStack spacing={4}>
-            <HStack w="full">
-              <Input
-                placeholder="Enter a search term..."
-                value={currentTerm}
-                onChange={(e) => setCurrentTerm(e.target.value)}
-                onKeyPress={handleKeyPress}
-              />
-              <Button onClick={addSearchTerm}>Add</Button>
-            </HStack>
+    <Container maxW="7xl" py={{ base: 4, md: 8 }}>
+      <VStack spacing={{ base: 5, md: 7 }} align="stretch">
+        <Flex
+          justify="space-between"
+          align={{ base: 'stretch', lg: 'end' }}
+          flexDir={{ base: 'column', lg: 'row' }}
+          gap={5}
+        >
+          <Box>
+            <Text fontSize="sm" color="brand.700" fontWeight="900" letterSpacing="0">
+              SEARCH RESULTS
+            </Text>
+            <Heading as="h1" size={{ base: 'lg', md: 'xl' }} color="slate.900" mt="2">
+              Review extracted evidence
+            </Heading>
+            <Text color="slate.600" mt="3" maxW="740px" lineHeight="1.7">
+              Search across the current ARGUS session and open matched documents with highlighted evidence.
+            </Text>
+          </Box>
+          <SimpleGrid columns={{ base: 3, md: 3 }} spacing={3} minW={{ lg: '420px' }}>
+            <Box bg="white" border="1px solid" borderColor="slate.200" borderRadius="8px" p="4">
+              <Text fontSize="xs" color="slate.500" fontWeight="800" textTransform="uppercase" letterSpacing="0">
+                Session
+              </Text>
+              <Text fontSize="2xl" fontWeight="900" color="slate.900">{sessionDocuments.length}</Text>
+            </Box>
+            <Box bg="white" border="1px solid" borderColor="slate.200" borderRadius="8px" p="4">
+              <Text fontSize="xs" color="slate.500" fontWeight="800" textTransform="uppercase" letterSpacing="0">
+                Results
+              </Text>
+              <Text fontSize="2xl" fontWeight="900" color="brand.700">{documents.length}</Text>
+            </Box>
+            <Box bg="white" border="1px solid" borderColor="slate.200" borderRadius="8px" p="4">
+              <Text fontSize="xs" color="slate.500" fontWeight="800" textTransform="uppercase" letterSpacing="0">
+                Matches
+              </Text>
+              <Text fontSize="2xl" fontWeight="900" color="accent.700">{totalMatches}</Text>
+            </Box>
+          </SimpleGrid>
+        </Flex>
+
+        <Box
+          w="full"
+          bg="white"
+          borderRadius="8px"
+          border="1px solid"
+          borderColor="slate.200"
+          boxShadow="0 20px 55px rgba(15, 23, 42, 0.06)"
+          overflow="hidden"
+        >
+          <VStack spacing={0} align="stretch">
+            <Box p={{ base: 4, md: 5 }}>
+              <Flex gap={3} flexDir={{ base: 'column', md: 'row' }}>
+                <InputGroup flex="1">
+                  <InputLeftElement pointerEvents="none">
+                    <SearchIcon color="slate.400" />
+                  </InputLeftElement>
+                  <Input
+                    placeholder="Search term or phrase"
+                    value={currentTerm}
+                    onChange={(e) => setCurrentTerm(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    bg="slate.50"
+                    borderColor="slate.200"
+                    h="48px"
+                  />
+                </InputGroup>
+                <Button
+                  leftIcon={<AddIcon />}
+                  variant="outline"
+                  onClick={addSearchTerm}
+                  isDisabled={!currentTerm.trim()}
+                  h="48px"
+                >
+                  Add Term
+                </Button>
+                <Button
+                  leftIcon={<SearchIcon />}
+                  onClick={handleSearch}
+                  isLoading={loading}
+                  h="48px"
+                  minW={{ md: '150px' }}
+                >
+                  Search
+                </Button>
+              </Flex>
+            </Box>
 
             {searchTerms.length > 0 && (
-              <Box w="full">
+              <Box px={{ base: 4, md: 5 }} pb={{ base: 4, md: 5 }}>
                 <HStack spacing={2} wrap="wrap">
                   {searchTerms.map((term, index) => (
-                    <Tag 
-                      key={index} 
-                      size="md" 
-                      borderRadius="full" 
-                      variant="solid" 
+                    <Tag
+                      key={index}
+                      size="lg"
+                      borderRadius="full"
+                      variant="subtle"
                       colorScheme="green"
                     >
                       <TagLabel>{term}</TagLabel>
@@ -251,39 +246,79 @@ const handleSearch = async () => {
                 </HStack>
               </Box>
             )}
-
-            <Button
-              colorScheme="green"
-              onClick={handleSearch}
-              isLoading={loading}
-              w="full"
-            >
-              Search
-            </Button>
           </VStack>
         </Box>
 
-        {/* Session Documents */}
-        {sessionDocuments.length > 0 && !documents.length && (
-          <Box w="full">
-            <Text fontSize="lg" fontWeight="bold" mb={4}>Documents in Current Session:</Text>
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-              {sessionDocuments.map((doc) => (
-                <DocumentCard key={doc.id} document={doc} />
-              ))}
-            </SimpleGrid>
+        {sessionDocuments.length === 0 && !documents.length && (
+          <Box
+            bg="white"
+            border="1px solid"
+            borderColor="slate.200"
+            borderRadius="8px"
+            p={{ base: 7, md: 10 }}
+            textAlign="center"
+          >
+            <Icon as={AttachmentIcon} boxSize={9} color="slate.400" mb="4" />
+            <Heading size="md" color="slate.900">No session documents</Heading>
+            <Text color="slate.500" mt="2">
+              Upload files first, then return to search.
+            </Text>
           </Box>
         )}
 
-        {/* Search Results */}
+        {sessionDocuments.length > 0 && !documents.length && (
+          <Box
+            bg="white"
+            border="1px solid"
+            borderColor="slate.200"
+            borderRadius="8px"
+            overflow="hidden"
+          >
+            <Flex px={{ base: 4, md: 5 }} py="4" justify="space-between" align="center" gap={3}>
+              <Box>
+                <Text fontWeight="900" color="slate.900">Documents in current session</Text>
+                <Text fontSize="sm" color="slate.500">Ready to search</Text>
+              </Box>
+              <Badge colorScheme="green" borderRadius="full" px="3" py="1">
+                {sessionDocuments.length} file{sessionDocuments.length === 1 ? '' : 's'}
+              </Badge>
+            </Flex>
+            <Divider borderColor="slate.200" />
+            <Box p={{ base: 4, md: 5 }}>
+              <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} spacing={5}>
+                {sessionDocuments.map((doc) => (
+                  <DocumentCard key={doc.id} document={doc} />
+                ))}
+              </SimpleGrid>
+            </Box>
+          </Box>
+        )}
+
         {documents.length > 0 && (
-          <Box w="full">
-            <Text fontSize="lg" fontWeight="bold" mb={4}>Search Results:</Text>
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-              {documents.map((doc) => (
-                <DocumentCard key={doc.id} document={doc} />
-              ))}
-            </SimpleGrid>
+          <Box
+            bg="white"
+            border="1px solid"
+            borderColor="slate.200"
+            borderRadius="8px"
+            overflow="hidden"
+          >
+            <Flex px={{ base: 4, md: 5 }} py="4" justify="space-between" align="center" gap={3}>
+              <Box>
+                <Text fontWeight="900" color="slate.900">Search results</Text>
+                <Text fontSize="sm" color="slate.500">Open a document to inspect highlighted matches</Text>
+              </Box>
+              <Badge colorScheme="blue" borderRadius="full" px="3" py="1">
+                {documents.length} result{documents.length === 1 ? '' : 's'}
+              </Badge>
+            </Flex>
+            <Divider borderColor="slate.200" />
+            <Box p={{ base: 4, md: 5 }}>
+              <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} spacing={5}>
+                {documents.map((doc) => (
+                  <DocumentCard key={doc.id} document={doc} />
+                ))}
+              </SimpleGrid>
+            </Box>
           </Box>
         )}
       </VStack>

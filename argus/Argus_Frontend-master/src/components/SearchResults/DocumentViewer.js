@@ -8,17 +8,16 @@ import {
   Badge,
   Checkbox,
   IconButton,
-  Center  // Add this
+  Center
 } from '@chakra-ui/react';
 import { ArrowBackIcon } from '@chakra-ui/icons';
 
 
 const ColorPanel = ({ matches, onToggle }) => {
-    // Exact colors that will be used for both display and highlighting
     const colors = [
-      { bg: "#FFD700", border: "#B8860B", name: "yellow" },     // vector
-      { bg: "#4169E1", border: "#0000CD", name: "blue" },       // pathogen
-      { bg: "#32CD32", border: "#228B22", name: "green" },      // vector and pathogen
+      { bg: "#FFD700", border: "#B8860B", name: "yellow" },
+      { bg: "#4169E1", border: "#0000CD", name: "blue" },
+      { bg: "#32CD32", border: "#228B22", name: "green" },
       { bg: "#FF69B4", border: "#DB7093", name: "pink" },
       { bg: "#9370DB", border: "#6A5ACD", name: "purple" },
       { bg: "#FFA500", border: "#FF8C00", name: "orange" },
@@ -47,16 +46,23 @@ const ColorPanel = ({ matches, onToggle }) => {
       bg="white" 
       p={4} 
       borderLeft="1px" 
-      borderColor="gray.200"
+      borderColor="slate.200"
       overflowY="auto"
       h="100vh"
     >
       <VStack spacing={4} align="stretch">
-        <Text fontWeight="bold" fontSize="lg">Search Highlights</Text>
+        <Text fontWeight="900" fontSize="lg" color="slate.900">Search Highlights</Text>
+        {Object.keys(matches).length === 0 && (
+          <Box p={3} bg="slate.50" borderRadius="8px" border="1px solid" borderColor="slate.200">
+            <Text fontSize="sm" color="slate.600">
+              No search highlights are active for this view.
+            </Text>
+          </Box>
+        )}
         {Object.entries(matches).map(([term, positions], index) => {
           const color = colors[index % colors.length];
           return (
-            <Box key={term} p={3} bg="gray.50" borderRadius="md">
+            <Box key={term} p={3} bg="slate.50" borderRadius="8px" border="1px solid" borderColor="slate.200">
               <HStack spacing={2} mb={2}>
                 <Checkbox 
                   isChecked={activeTerms[term]}
@@ -95,7 +101,6 @@ const ColorPanel = ({ matches, onToggle }) => {
 const FileViewer = ({ fileType, url }) => {
   if (!url) return null;
 
-  // Image files
   if (fileType?.startsWith('image/')) {
     return (
       <Center h="full">
@@ -110,7 +115,6 @@ const FileViewer = ({ fileType, url }) => {
     );
   }
 
-  // HTML files
   if (fileType === 'text/html') {
     return (
       <Box 
@@ -127,7 +131,6 @@ const FileViewer = ({ fileType, url }) => {
     );
   }
 
-  // Default viewer for PDFs and converted documents
   return (
     <Box 
       as="iframe"
@@ -156,7 +159,6 @@ const DocumentViewer = () => {
 
   const handleTermToggle = async (activeTerms) => {
     if (activeTerms.length === 0) {
-      // Show original document if no terms are active
       try {
         const response = await fetch(`/api/view/${id}/`, {
           method: 'GET',
@@ -181,13 +183,11 @@ const DocumentViewer = () => {
     }
 
     try {
-      // Create color map for active terms
       const colors = [
         'yellow', 'blue', 'green', 'pink', 'purple', 
         'orange', 'cyan', 'teal', 'red', 'lime'
       ];
 
-      // Preserve original color assignments for active terms
       const activeColorMap = {};
       Object.entries(matches).forEach(([term, _], index) => {
         if (activeTerms.includes(term)) {
@@ -262,7 +262,6 @@ const DocumentViewer = () => {
 
         const blob = await response.blob();
         
-        // Clean up old URL if it exists
         if (url) {
           URL.revokeObjectURL(url);
         }
@@ -277,15 +276,14 @@ const DocumentViewer = () => {
 
     loadDocument();
 
-    // Cleanup function
     return () => {
       if (url) {
         URL.revokeObjectURL(url);
       }
     };
 
-    // eslint-disable-next-line 
-  }, [id, query]); // Removed url from dependencies
+    // eslint-disable-next-line
+  }, [id, query]);
 
   return (
     <Box>
@@ -297,8 +295,7 @@ const DocumentViewer = () => {
       >
         <IconButton
           icon={<ArrowBackIcon />}
-          onClick={() => navigate('/api/results')}
-          colorScheme="green"
+          onClick={() => navigate('/results')}
           aria-label="Go back"
           size="lg"
           rounded="full"

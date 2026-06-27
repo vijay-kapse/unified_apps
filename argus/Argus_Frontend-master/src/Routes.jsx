@@ -1,5 +1,6 @@
   // src/Routes.jsx
   import { Routes, Route, Navigate } from 'react-router-dom';
+  import { Center, Spinner } from '@chakra-ui/react';
   import Login from './components/Auth/Login';
   import Register from './components/Auth/Register';
   import HomePage from './components/Home/HomePage';
@@ -9,14 +10,21 @@
   import { useAuth } from './contexts/AuthContext';
 
 
+  const RouteLoading = () => (
+    <Center minH="100vh">
+      <Spinner color="brand.500" size="xl" />
+    </Center>
+  );
 
   const PrivateRoute = ({ children }) => {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, loading } = useAuth();
+    if (loading) return <RouteLoading />;
     return isAuthenticated ? children : <Navigate to="/login" />;
   };
 
   const PublicRoute = ({ children }) => {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, loading } = useAuth();
+    if (loading) return <RouteLoading />;
     return !isAuthenticated ? children : <Navigate to="/home" />;
   };
 

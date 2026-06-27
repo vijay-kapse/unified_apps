@@ -9,6 +9,7 @@ import {
   MenuItem,
   MenuList,
   Text,
+  VStack,
   useColorModeValue,
 } from '@chakra-ui/react';
 import { ChevronDownIcon, HamburgerIcon } from '@chakra-ui/icons';
@@ -44,7 +45,7 @@ const ArgusLogoMark = () => (
 );
 
 const Navbar = ({ onMobileMenuOpen }) => {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -57,15 +58,16 @@ const Navbar = ({ onMobileMenuOpen }) => {
       as="header"
       bg={useColorModeValue('white', 'gray.900')}
       borderBottom="1px solid"
-      borderColor={useColorModeValue('gray.200', 'gray.700')}
-      px={{ base: 4, md: 6 }}
+      borderColor={useColorModeValue('slate.200', 'gray.700')}
+      boxShadow="0 10px 30px rgba(15, 23, 42, 0.04)"
+      px={{ base: 4, md: 7 }}
       position="fixed"
       top={0}
       w="full"
       zIndex="sticky"
     >
-      <Flex h="72px" alignItems="center" justifyContent="space-between" gap={4}>
-        <HStack spacing={4} minW={0}>
+      <Flex h="76px" alignItems="center" justifyContent="space-between" gap={{ base: 2, md: 4 }}>
+        <HStack spacing={{ base: 2, md: 4 }} minW={0}>
           <IconButton
             display={{ base: 'flex', md: 'none' }}
             onClick={onMobileMenuOpen}
@@ -74,29 +76,46 @@ const Navbar = ({ onMobileMenuOpen }) => {
             icon={<HamburgerIcon />}
           />
 
-          <HStack spacing={3} minW={0}>
+          <HStack spacing={{ base: 2, md: 3 }} minW={0}>
             <ArgusLogoMark />
-            <Text
-              fontSize={{ base: '2xl', md: '3xl' }}
-              fontWeight="800"
-              color="brand.700"
-              lineHeight="1"
-              noOfLines={1}
-            >
-              ARGUS
-            </Text>
+            <VStack display={{ base: 'none', md: 'flex' }} spacing={0} align="start" minW={0}>
+              <Text
+                fontSize={{ base: '2xl', md: '3xl' }}
+                fontWeight="900"
+                color="slate.900"
+                letterSpacing="0"
+                lineHeight="1"
+                noOfLines={1}
+              >
+                ARGUS
+              </Text>
+              <Text
+                display={{ base: 'none', sm: 'block' }}
+                fontSize="xs"
+                fontWeight="800"
+                color="slate.500"
+                letterSpacing="0"
+                textTransform="uppercase"
+                noOfLines={1}
+              >
+                Assisted document reading
+              </Text>
+            </VStack>
           </HStack>
         </HStack>
 
-        <HStack spacing={{ base: 2, md: 4 }} flexShrink={0}>
+        <HStack spacing={{ base: 1, md: 4 }} flexShrink={0}>
           <Button
             as="a"
             href="/rms/"
             variant="outline"
-            colorScheme="brand"
+            borderColor="slate.300"
+            color="slate.700"
+            _hover={{ bg: 'slate.100' }}
             size={{ base: 'sm', md: 'md' }}
           >
-            Back to RMS
+            <Text as="span" display={{ base: 'none', sm: 'inline' }}>Back to RMS</Text>
+            <Text as="span" display={{ base: 'inline', sm: 'none' }}>RMS</Text>
           </Button>
 
           <Menu>
@@ -105,8 +124,10 @@ const Navbar = ({ onMobileMenuOpen }) => {
               rightIcon={<ChevronDownIcon />}
               variant="ghost"
               size={{ base: 'sm', md: 'md' }}
+              color="slate.700"
             >
-              {user?.username || 'Account'}
+              <Text as="span" display={{ base: 'none', sm: 'inline' }}>Account</Text>
+              <Text as="span" display={{ base: 'inline', sm: 'none' }}>Acct</Text>
             </MenuButton>
             <MenuList>
               <MenuItem onClick={handleLogout}>Logout</MenuItem>
