@@ -429,6 +429,44 @@ def fetch_document(request, doc_id):
             'message': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def clear_uploads(request):
+    """Remove uploaded files and search indexes for the current ARGUS session."""
+    try:
+        session_key = request.session.session_key
+        if not session_key:
+            return Response({
+                'message': 'No active session to clear',
+                'deleted_count': 0,
+            })
+
+        documents = CorpusFile.objects.filter(session_key=session_key)
+        deleted_count = documents.count()
+        documents.delete()
+
+        for relative_dir in ['corpus', 'highlighted_pdfs']:
+            dir_path = os.path.join(settings.BASE_DIR, relative_dir, session_key)
+            if os.path.exists(dir_path):
+                shutil.rmtree(dir_path)
+
+        try:
+            get_postings_collection(session_key).drop()
+        except Exception as e:
+            print(f"Error dropping postings collection for session {session_key}: {e}")
+
+        return Response({
+            'message': 'Uploaded files cleared successfully',
+            'deleted_count': deleted_count,
+        })
+
+    except Exception as e:
+        return Response({
+            'message': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 # Session Management
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

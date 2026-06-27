@@ -35,7 +35,9 @@ const DocumentCard = ({ document }) => {
 
     navigate(viewPath, {
       state: {
-        matchData: document.matches
+        matchData: document.matches,
+        fileName,
+        fileType
       }
     });
   };

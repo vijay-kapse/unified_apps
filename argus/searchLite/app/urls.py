@@ -13,6 +13,7 @@ urlpatterns = [
     path('upload/', views.upload, name='upload'),
     path('results/', views.results, name='results'),
     path('search/', views.search, name='search'),
+    path('clear_uploads/', views.clear_uploads, name='clear_uploads'),
     path('view/<int:doc_id>/', views.view_document, name='view_document'),
     path('fetch_document/<int:doc_id>/', views.fetch_document, name='fetch_document'),
     path('update_document/<int:doc_id>/', views.update_document, name='update_document'),
