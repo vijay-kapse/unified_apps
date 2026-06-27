@@ -107,11 +107,14 @@ const Navbar = ({ onMobileMenuOpen }) => {
         <HStack spacing={{ base: 1, md: 4 }} flexShrink={0}>
           <Button
             as="a"
-            href="/rms/"
+            href="/rms/apps"
             variant="outline"
-            borderColor="slate.300"
-            color="slate.700"
-            _hover={{ bg: 'slate.100' }}
+            borderRadius="full"
+            borderColor="blue.200"
+            bg="blue.50"
+            color="blue.700"
+            fontWeight="700"
+            _hover={{ bg: 'blue.100', textDecoration: 'none' }}
             size={{ base: 'sm', md: 'md' }}
           >
             <Text as="span" display={{ base: 'none', sm: 'inline' }}>Back to RMS</Text>
