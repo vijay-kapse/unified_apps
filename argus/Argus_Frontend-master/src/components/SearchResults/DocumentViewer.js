@@ -494,4 +494,5 @@ const DocumentViewer = () => {
   );
 };
 
+export { FileViewer };
 export default DocumentViewer;

@@ -22,6 +22,7 @@ import {
 } from '@chakra-ui/react';
 import { AddIcon, AttachmentIcon, SearchIcon } from '@chakra-ui/icons';
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DocumentCard from './DocumentCard';
 
 const SearchResults = () => {
@@ -30,7 +31,9 @@ const SearchResults = () => {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sessionDocuments, setSessionDocuments] = useState([]);
+  const [searchedTerms, setSearchedTerms] = useState([]);
   const toast = useToast();
+  const navigate = useNavigate();
 
   const fetchSessionDocuments = useCallback(async () => {
     try {
@@ -113,6 +116,7 @@ const SearchResults = () => {
 
       if (response.ok) {
         setDocuments(data.documents || []);
+        setSearchedTerms(termsToSearch);
         toast({
           title: `Found ${data.total_results} results`,
           status: 'success',
@@ -129,9 +133,23 @@ const SearchResults = () => {
         duration: 5000,
       });
       setDocuments([]);
+      setSearchedTerms([]);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleMergeView = () => {
+    const termsForMerge = searchedTerms.length ? searchedTerms : searchTerms;
+    navigate('/merge-view', {
+      state: {
+        mergeData: {
+          documents,
+          searchTerms: termsForMerge,
+        },
+        query: termsForMerge.join('|||'),
+      },
+    });
   };
 
   const totalMatches = documents.reduce((sum, doc) => {
@@ -307,9 +325,20 @@ const SearchResults = () => {
                 <Text fontWeight="900" color="slate.900">Search results</Text>
                 <Text fontSize="sm" color="slate.500">Open a document to inspect highlighted matches</Text>
               </Box>
-              <Badge colorScheme="blue" borderRadius="full" px="3" py="1">
-                {documents.length} result{documents.length === 1 ? '' : 's'}
-              </Badge>
+              <HStack spacing={3} wrap="wrap" justify="flex-end">
+                <Badge colorScheme="blue" borderRadius="full" px="3" py="1">
+                  {documents.length} result{documents.length === 1 ? '' : 's'}
+                </Badge>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  colorScheme="green"
+                  onClick={handleMergeView}
+                  isDisabled={!documents.length}
+                >
+                  Merge View
+                </Button>
+              </HStack>
             </Flex>
             <Divider borderColor="slate.200" />
             <Box p={{ base: 4, md: 5 }}>

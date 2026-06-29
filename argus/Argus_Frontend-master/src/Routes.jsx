@@ -7,6 +7,7 @@
   import SearchResults from './components/SearchResults/SearchResults';
   import UploadPage from './components/Upload/UploadPage';
   import DocumentViewer from './components/SearchResults/DocumentViewer';
+  import MergeViewer from './components/SearchResults/MergeViewer';
   import { useAuth } from './contexts/AuthContext';
 
 
@@ -64,6 +65,12 @@
         <Route path="/view/:id" element={
           <PrivateRoute>
             <DocumentViewer />
+          </PrivateRoute>
+        } />
+
+        <Route path="/merge-view" element={
+          <PrivateRoute>
+            <MergeViewer />
           </PrivateRoute>
         } />
 
